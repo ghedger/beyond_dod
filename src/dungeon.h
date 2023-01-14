@@ -61,12 +61,12 @@ public:
 		E_WALL=0x0c,
 		S_WALL=0x30,
 		W_WALL=0xc0,
-		HF_PAS=0,
+		HF_PAS=0,     // Horizontal Features
 		HF_DOR=1,
 		HF_SDR=2,
 		HF_WAL=3,
 
-		VF_HOLE_UP=0,
+		VF_HOLE_UP=0, // Vertical Features
 		VF_LADDER_UP=1,
 		VF_HOLE_DOWN=2,
 		VF_LADDER_DOWN=3,

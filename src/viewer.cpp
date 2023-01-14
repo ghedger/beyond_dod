@@ -536,7 +536,7 @@ bool Viewer::ShowFade(int fadeMode, bool inMainLoop)
 //    std::cout << "in keycheck" << std::endl;
 			Mix_HaltChannel(fadChannel);
 			clearArea(&TXTPRI);
-			while(SDL_PollEvent(&event)) 
+			while(SDL_PollEvent(&event))
                 ; // clear event buffer
 //    std::cout << "before return" << std::endl;
 			return false;
@@ -578,7 +578,7 @@ bool Viewer::ShowFade(int fadeMode, bool inMainLoop)
 			if (fadeMode != 2 && scheduler.keyCheck())
 			{
 				clearArea(&TXTPRI);
-				while(SDL_PollEvent(&event)) 
+				while(SDL_PollEvent(&event))
                     ; // clear event buffer
 				return false;
 			}
@@ -603,7 +603,7 @@ bool Viewer::ShowFade(int fadeMode, bool inMainLoop)
 			{
 				Mix_HaltChannel(fadChannel);
 				clearArea(&TXTPRI);
-				while(SDL_PollEvent(&event)) 
+				while(SDL_PollEvent(&event))
                     ; // clear event buffer
 				return false;
 			}
@@ -636,7 +636,7 @@ bool Viewer::ShowFade(int fadeMode, bool inMainLoop)
 				{
 					Mix_HaltChannel(fadChannel);
 					clearArea(&TXTPRI);
-					while(SDL_PollEvent(&event)) 
+					while(SDL_PollEvent(&event))
                         ; // clear event buffer
 					return false;
 				}
@@ -651,7 +651,7 @@ bool Viewer::ShowFade(int fadeMode, bool inMainLoop)
 	if (fadeMode < 3)
 	{
 		clearArea(&TXTPRI);
-		while(SDL_PollEvent(&event)) 
+		while(SDL_PollEvent(&event))
             ; // clear event buffer
 		return true;
 	}
@@ -671,7 +671,7 @@ bool Viewer::ShowFade(int fadeMode, bool inMainLoop)
             emscripten_sleep(1);
 		  }
 		clearArea(&TXTPRI);
-		while(SDL_PollEvent(&event)) 
+		while(SDL_PollEvent(&event))
             ; // clear event buffer
 		return false;
 	}
@@ -1323,6 +1323,7 @@ void Viewer::VIEWER()
 			CMRDRW(FWDCRE[creature.CCBLND[creNum].creature_id], creNum);
 		}
 
+    // Draw around-the-corner "shadow" of creature (if there's one)
 		PDRAW(LPK_VLA, 3, u);
 		PDRAW(RPK_VLA, 1, u);
 
@@ -1523,7 +1524,7 @@ const char * Viewer::getInventory() {
     while (ctr != -1) {
 	    object.OBJNAM(ctr);
 	    int x = 0;
-        
+
 	    while (*(parser.TOKEN + x) != 0xFF)
 	    {
 		    char curChar = dodToChar(*(parser.TOKEN + x));
@@ -1533,7 +1534,7 @@ const char * Viewer::getInventory() {
         currentInventory.append(1, '|');
         ctr = object.OCBLND[ctr].P_OCPTR;
     }
-    return currentInventory.c_str(); 
+    return currentInventory.c_str();
 }
 
 const char * Viewer::getFloor() {
@@ -1548,7 +1549,7 @@ const char * Viewer::getFloor() {
 		{
 	        object.OBJNAM(ctr);
 	        int x = 0;
-        
+
 	        while (*(parser.TOKEN + x) != 0xFF)
 	        {
 		        char curChar = dodToChar(*(parser.TOKEN + x));
@@ -1559,7 +1560,7 @@ const char * Viewer::getFloor() {
 		}
 	} while (ctr != -1);
 
-    return currentFloor.c_str(); 
+    return currentFloor.c_str();
 }
 
 void Viewer::PCRLF()
