@@ -64,10 +64,13 @@ public:
 	void		TXTXXX(dodBYTE c);
 	void		TXTSCR();
 	void		VIEWER();
+	void		VIEWER_orig();
 	void		SETSCL();
 	void		DRAWIT(int * vl);
+	void		DRAWIT_at(int * vl, int xGrid, int yGrid, int zGrid);  // Wide FOV
 	void		PDRAW(int * vl, dodBYTE dir, dodBYTE pdir);
 	void		CMRDRW(int * vl, int creNum);
+	void		CMRDRW_at(int * vl, int creNum, int xGrid, int yGrid, int zGrid);
 	void		SETFAD();
 	dodSHORT	ScaleX(int x);
 	dodSHORT	ScaleY(int y);
@@ -76,6 +79,7 @@ public:
 	void		MAPPER();
 	void		setVidInv(bool inv);
 	void		drawVectorList(int VLA[]);
+	void		drawVectorList_at(int VLA[], float xOrigin, float yOrigin); // Wide FOV
 	void		drawVector(float X0, float Y0, float X1, float Y1);
 	void		Reset();
 	bool		ShowFade(int fadeMode, bool inMainLoop = true);

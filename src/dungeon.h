@@ -49,6 +49,9 @@ public:
 	dodBYTE		NEIBOR[9];		// The cells around the player
 								// Also used to store the walls/doors
 								// of a given cell (for the 3D-Viewer)
+
+  dodBYTE   FOV[81]; // Field of vision with player's position at { 4, 0 }
+                    // FOV WILL REPLACE NEIBOR IN RENDERING (but not game logic)
 	dodBYTE		LEVTAB[7];		// The RNG seeds
 	RowCol		DROW;
 	int			STPTAB[8];

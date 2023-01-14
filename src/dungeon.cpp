@@ -280,6 +280,19 @@ void Dungeon::DGNGEN()
 		}
 	}
 
+  /* Phase2b: Decimate */
+  /*
+  for (DROW.row = 0; DROW.row < 32; ++DROW.row)
+  {
+    for (DROW.col = 0; DROW.col < 32; ++DROW.col)
+    {
+      maz_idx = RC2IDX(DROW.row, DROW.col);
+      if (0 == (rng.RANDOM() & 15)) {
+        MAZLND[maz_idx] = 0x00;
+      }
+    }
+  }
+  */
 	/* Phase 3: Create Doors/Secret Doors */
 
 	for (mzctr = 0; mzctr < 70; ++mzctr)

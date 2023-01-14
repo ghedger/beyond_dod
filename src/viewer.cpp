@@ -24,7 +24,7 @@ is held by Douglas J. Morgan.
 #include "creature.h"
 #include "enhanced.h"
 #include <string>
-
+#include <iostream>
 
 extern Creature		creature;
 extern Dungeon		dungeon;
@@ -1277,7 +1277,7 @@ void Viewer::PROMPT()
 }
 
 // This is the 3D-Viewport rendering routine
-void Viewer::VIEWER()
+void Viewer::VIEWER_orig()
 {
 	dodBYTE a, b, x, u, ftctr, vft;
 	int creNum, objIdx;
@@ -1291,8 +1291,10 @@ void Viewer::VIEWER()
 		a = dungeon.MAZLND[dungeon.RC2IDX(dungeon.DROW.row, dungeon.DROW.col)];
 		u = 0;
 		x = 4;
-		do
-		{
+		do    // Detect what type of wall edges to draw
+		{     // and store them in dungeon.NEIBOR.
+          // This represents what is immediately in the player's grid square
+          // and to his left and right.
 			b = a;
 			b = (b & 3);
 			dungeon.NEIBOR[u+4] = b;
@@ -1327,7 +1329,7 @@ void Viewer::VIEWER()
 		PDRAW(LPK_VLA, 3, u);
 		PDRAW(RPK_VLA, 1, u);
 
-		// Draw vertical features
+		// Draw vertical features (ladders/holes)
 		vft = dungeon.VFIND(dungeon.DROW);
 		if (vft == Dungeon::VF_NULL)
 		{
@@ -1358,7 +1360,7 @@ void Viewer::VIEWER()
 			}
 		}
 
-		// Draw Objects
+		// Draw Objects (creatures and items)
 		object.OFINDF = 0;
 		do
 		{
@@ -1378,6 +1380,148 @@ void Viewer::VIEWER()
 		}
 		dungeon.DROW.row += dungeon.STPTAB[player.PDIR * 2];
 		dungeon.DROW.col += dungeon.STPTAB[player.PDIR * 2 + 1];
+		++RANGE;
+        // Need to yield?
+	} while (RANGE <= 9);
+}
+
+
+// This is the 3D-Viewport rendering routine, wide FOV version (rooms instead of just corridors)
+void Viewer::VIEWER()
+{
+	dodBYTE a, b, x, u, featureIdx, vft;
+	int creNum, objIdx;
+
+	RANGE = 0;
+	dungeon.DROW.setRC(player.PROW, player.PCOL);
+
+  // These values are from the perspective of the player's point of view (camera),
+  // not absolute dungeon grid locations.
+  int xGrid = 0;
+  int yGrid = 0;
+  int zGrid = 0;
+
+  std::cout << std::endl << "*********************" << std::endl;
+
+  do
+  {
+    SETSCL();
+
+    // x moves from left (-4) to right (4) to cover 9 squares, with 0 as center
+    for (xGrid = -2; xGrid < 3; xGrid++) {
+      // Basically a simple rotation matrix
+      // STPTAB: {-1, 0, 0, 1, 1, 0, 0, -1}
+      dungeon.DROW.row = (dodBYTE) ((int) ((char) player.PROW) +
+        (dungeon.STPTAB[((player.PDIR+1)&0x3) * 2] * xGrid) +
+        (dungeon.STPTAB[((player.PDIR+1)&0x3) * 2 + 1] * -zGrid));
+
+      dungeon.DROW.col = (dodBYTE) ((int) ((char) player.PCOL) +
+        ((dungeon.STPTAB[((player.PDIR+1)&0x3) * 2] * zGrid) +
+        ((dungeon.STPTAB[((player.PDIR+1)&0x3) * 2 + 1] * xGrid))));
+// WN2519
+      std::cout << (int) dungeon.DROW.col << "," << (int) dungeon.DROW.row << "{" <<
+        xGrid << "," << zGrid << "} " ;
+      //dungeon.DROW.col = (dodBYTE) ((char) player.PCOL + (dungeon.STPTAB[((player.PDIR-1)&0x3) * 2 + 1] * zGrid));
+      a = dungeon.MAZLND[dungeon.RC2IDX(dungeon.DROW.row, dungeon.DROW.col)];
+
+      u = 0;
+      x = 4;
+      // Four walls on the square:
+      //
+      //  		N_WALL=0x03,
+		  //      E_WALL=0x0c,
+		  //      S_WALL=0x30,
+		  //      W_WALL=0xc0,
+      do
+      {
+        b = a;
+        b = (b & 3);
+        dungeon.NEIBOR[u+4] = b;
+        dungeon.NEIBOR[u] = b;
+        ++u;
+        a >>= 2;
+        --x;
+
+      } while (x != 0);
+
+      b = player.PDIR;
+      u = b;
+
+      for (featureIdx = 0; featureIdx < 3; ++featureIdx)
+      {
+        b = dungeon.NEIBOR[u + FLATAB[featureIdx]];
+        if (b == dungeon.HF_SDR)
+        {
+          --MAGFLG;
+          DRAWIT_at(FLATABv[featureIdx][b], xGrid, yGrid, zGrid);
+          b = dungeon.HF_WAL;
+        }
+        DRAWIT_at(FLATABv[featureIdx][b], xGrid, yGrid, zGrid);
+      }
+
+      creNum = creature.CFIND2(dungeon.DROW);
+      if (creNum != -1)
+      {
+        CMRDRW_at(FWDCRE[creature.CCBLND[creNum].creature_id], creNum, xGrid, yGrid, zGrid);
+      }
+
+      // Draw around-the-corner "shadow" of creature (if there's one)
+      //PDRAW(LPK_VLA, 3, u);
+      //PDRAW(RPK_VLA, 1, u);
+
+      // Draw vertical features (ladders/holes)
+      vft = dungeon.VFIND(dungeon.DROW);
+      if (vft == Dungeon::VF_NULL)
+      {
+        DRAWIT_at(CEI_VLA, xGrid, yGrid, zGrid);
+      }
+      else
+      {
+        switch(vft)
+        {
+          case Dungeon::VF_HOLE_UP:
+            DRAWIT_at(HUP_VLA, xGrid, yGrid, zGrid);
+            break;
+          case Dungeon::VF_LADDER_UP:
+            DRAWIT_at(LAD_VLA, xGrid, yGrid, zGrid);
+            DRAWIT_at(HUP_VLA, xGrid, yGrid, zGrid);
+            break;
+          case Dungeon::VF_HOLE_DOWN:
+            DRAWIT_at(HDN_VLA, xGrid, yGrid, zGrid);
+            DRAWIT_at(CEI_VLA, xGrid, yGrid, zGrid);
+            break;
+          case Dungeon::VF_LADDER_DOWN:
+            DRAWIT_at(LAD_VLA, xGrid, yGrid, zGrid);
+            DRAWIT_at(HDN_VLA, xGrid, yGrid, zGrid);
+            DRAWIT_at(CEI_VLA, xGrid, yGrid, zGrid);
+            break;
+          default:
+            break; // should never get here
+        }
+      }
+
+      // Draw Objects (creatures and items)
+      object.OFINDF = 0;
+      do
+      {
+        objIdx = object.OFIND(dungeon.DROW);
+        if (objIdx == -1)
+          break;
+        --MAGFLG;
+        DRAWIT_at(FWDOBJ[object.OCBLND[objIdx].obj_type], xGrid, yGrid, zGrid);
+        DRAWIT_at(FWDOBJ[object.OCBLND[objIdx].obj_type], xGrid, yGrid, zGrid);
+        // Need to yield?
+      } while (true);
+
+
+      if (dungeon.NEIBOR[u] != 0)
+      {
+        //break;
+      }
+      //dungeon.DROW.row += dungeon.STPTAB[player.PDIR * 2];
+      //dungeon.DROW.col += dungeon.STPTAB[player.PDIR * 2 + 1];
+    }
+    zGrid++;
 		++RANGE;
         // Need to yield?
 	} while (RANGE <= 9);
@@ -1414,6 +1558,25 @@ void Viewer::DRAWIT(int * vl)
 	drawVectorList(vl);
 }
 
+// Used by 3D-Viewer, draws a vector list relative to player origin {0, 0}
+// with a unit size of 1 dungeon square.
+// zGrid must be 1
+void Viewer::DRAWIT_at(int * vl, int xGrid, int yGrid, int zGrid)
+{
+  zGrid += 1;
+  if (!zGrid) return; // Avoid division-by-zero
+
+	SETFAD();
+  // VCNTRX VCNTRY
+  // TODO: Optimize -- no need to do this calc each time.
+  //float xOrigin = (((xGrid*256)-(float)VCNTRX)*VXSCALf)/127.0f;
+  //float yOrigin = (((yGrid*256)-VCNTRY)*VYSCAL)/127.0f;
+  float xOrigin = ScaleXf((float)xGrid * 127.0f + 127.0f); //(float) ((xGrid*127.0f) / (float)zGrid);
+  float yOrigin = ScaleYf((float)yGrid * 127.0f + 76.0f); // / (float)zGrid);
+	drawVectorList_at(vl, xOrigin, yOrigin);
+}
+
+
 // Used by 3D-Viewer, checks for around-the-corner creature
 void Viewer:: PDRAW(int * vl, dodBYTE dir, dodBYTE pdir)
 {
@@ -1438,6 +1601,16 @@ void Viewer::CMRDRW(int * vl, int creNum)
 		--MAGFLG;
 	DRAWIT(vl);
 }
+
+// Prepares for drawing creature with either magical or physical lighting
+void Viewer::CMRDRW_at(int * vl, int creNum, int xGrid, int yGrid, int zGrid)
+{
+	if (creature.CCBLND[creNum].P_CCMGO != 0)
+		--MAGFLG;
+	DRAWIT_at(vl, xGrid, yGrid, zGrid);
+}
+
+
 
 // Sets the perspective scale
 void Viewer::SETSCL()
@@ -1909,7 +2082,7 @@ void Viewer::drawVectorList(int VLA[])
 		{
 			if (g_options&(OPT_VECTOR|OPT_HIRES)) {
 				float x0, y0, x1, y1;
-				x0 = ScaleXf((float)VLA[ctr]) + (float)VCNTRX;
+				x0 = ScaleXf((float)VLA[ctr])   + (float)VCNTRX;
 				y0 = ScaleYf((float)VLA[ctr+1]) + (float)VCNTRY;
 				x1 = ScaleXf((float)VLA[ctr+2]) + (float)VCNTRX;
 				y1 = ScaleYf((float)VLA[ctr+3]) + (float)VCNTRY;
@@ -1917,7 +2090,7 @@ void Viewer::drawVectorList(int VLA[])
 			}
 			else {
 				float x0, y0, x1, y1;
-				x0 = ScaleXf((float)VLA[ctr]) + (float)VCNTRX;
+				x0 = ScaleXf((float)VLA[ctr])   + (float)VCNTRX;
 				y0 = ScaleYf((float)VLA[ctr+1]) + (float)VCNTRY;
 				x1 = ScaleXf((float)VLA[ctr+2]) + (float)VCNTRX;
 				y1 = ScaleYf((float)VLA[ctr+3]) + (float)VCNTRY;
@@ -1938,6 +2111,60 @@ void Viewer::drawVectorList(int VLA[])
         // Need to yield?
 	}
 }
+
+// Draws non-font vector lists, wide FOV version
+void Viewer::drawVectorList_at(int VLA[], float xOrigin, float yOrigin)
+{
+	int numLists = VLA[0];
+	int curList = 0;
+	int numVertices;
+	int curVertex;
+	int	ctr = 1;
+
+	if (VCTFAD == 0xFF)
+	{
+		return;
+	}
+
+	while (curList < numLists)
+	{
+		numVertices = VLA[ctr];
+		++ctr;
+		curVertex = 0;
+		while (curVertex < (numVertices - 1) )
+		{
+			if (g_options&(OPT_VECTOR|OPT_HIRES)) {
+				float x0, y0, x1, y1;
+				x0 = ScaleXf((float)VLA[ctr])   + (float)xOrigin + (float)VCNTRX;
+				y0 = ScaleYf((float)VLA[ctr+1]) + (float)yOrigin + (float)VCNTRY;
+				x1 = ScaleXf((float)VLA[ctr+2]) + (float)xOrigin + (float)VCNTRX;
+				y1 = ScaleYf((float)VLA[ctr+3]) + (float)yOrigin + (float)VCNTRY;
+				drawVector(x0, y0, x1, y1);
+			}
+			else {
+				float x0, y0, x1, y1;
+				x0 = ScaleXf((float)VLA[ctr])   + (float)xOrigin + (float)VCNTRX;
+				y0 = ScaleYf((float)VLA[ctr+1]) + (float)yOrigin + (float)VCNTRY;
+				x1 = ScaleXf((float)VLA[ctr+2]) + (float)xOrigin + (float)VCNTRX;
+				y1 = ScaleYf((float)VLA[ctr+3]) + (float)yOrigin + (float)VCNTRY;
+				drawVector((float)(int)x0, (float)(int)y0, (float)(int)x1, (float)(int)y1);
+//				dodSHORT x0, y0, x1, y1;
+//				x0 = ScaleX(VLA[ctr]) + VCNTRX;
+//				y0 = ScaleY(VLA[ctr+1]) + VCNTRY;
+//				x1 = ScaleX(VLA[ctr+2]) + VCNTRX;
+//				y1 = ScaleY(VLA[ctr+3]) + VCNTRY;
+//				drawVector(x0, y0, x1, y1);
+			}
+			ctr += 2;
+			++curVertex;
+            // Need to yield?
+		}
+		++curList;
+		ctr += 2;
+        // Need to yield?
+	}
+}
+
 
 // Scales X-coordinate
 dodSHORT Viewer::ScaleX(int x)
